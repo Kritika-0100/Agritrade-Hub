@@ -1,0 +1,294 @@
+import config from "../config/config.json";
+
+const userApiService = {
+  RegisterFarmer: function (farmerFormData) {
+    let api = fetch(config.API_HOST_URL + "/users", {
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+      body: JSON.stringify(farmerFormData),
+      mode: "cors",
+      method: "POST",
+    });
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        console.log(data);
+        if (data?.id) {
+          window.alert("Farmer Register Success");
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  loginFarmer: function (crendentials, gotoDashboard) {
+    let api = fetch(
+      config.API_HOST_URL +
+        `/users?email=${crendentials.email}&password=${crendentials.password}`,
+      {
+        headers: {
+          "content-type": "application/json;charset=utf-8",
+        },
+        mode: "cors",
+        method: "GET",
+      }
+    )
+      .then((res) => {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          gotoDashboard(data);
+        } else {
+          window.alert("Invalid User Name or Password");
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  },
+  RegisterMerchant: function (merchantFormData) {
+  let api = fetch(config.API_HOST_URL + "/users", {
+    headers: {
+      "content-type": "application/json;charset=utf-8",
+    },
+    body: JSON.stringify(merchantFormData),
+    mode: "cors",
+    method: "POST",
+  });
+  api
+    .then(function (res) {
+      if (res.ok) {
+        return res.json();
+      }
+    })
+    .then(function (data) {
+      console.log(data);
+      if (data?.id) {
+        window.alert("Merchant Register Success");
+      }
+    })
+    .catch(function (error) {
+      console.log(error);
+      window.alert("Oops Error Try Later");
+    });
+},
+loginMerchant: function (credentials, gotoDashboard) {
+  fetch(
+    `${config.API_HOST_URL}/users?email=${credentials.email}&password=${credentials.password}&role=merchant`,
+    {
+      headers: { "content-type": "application/json;charset=utf-8" },
+      mode: "cors",
+      method: "GET",
+    }
+  )
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        // ✅ Save session data in localStorage
+        window.localStorage.setItem(
+          "session.data",
+          JSON.stringify({
+            id: data[0].id,
+            name: data[0].name,
+            role: "merchant",
+            email: data[0].email
+          })
+        );
+        // ✅ Redirect to dashboard
+        gotoDashboard(data);
+      } else {
+        window.alert("Invalid User Name or Password");
+      }
+    })
+    .catch((error) => console.log(error));
+},
+
+
+  AddProduct: function (productData, productListing) {
+    let api = fetch(config.API_HOST_URL + "/products", {
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+      body: JSON.stringify(productData),
+      mode: "cors",
+      method: "POST",
+    });
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        console.log(data);
+        if (data?.id) {
+          // window.alert("Product Added Successfully");
+          productListing(data);
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  getFarmerProducts: function (farmer_id, showProducts) {
+    let api = fetch(
+      config.API_HOST_URL + "/products/?fk_farmer_id=" + farmer_id,
+      {
+        headers: {
+          "content-type": "application/json;charset=utf-8",
+        },
+      }
+    );
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        console.log(data);
+        if (Array.isArray(data) && data.length > 0) {
+          showProducts(data);
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  deleteProducts: function (product_id, refreshProductList) {
+    let api = fetch(config.API_HOST_URL + "/products/" + product_id, {
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+      method: "DELETE",
+      mode: "cors",
+    });
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        refreshProductList(data);
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  uploadImage: function (product_id, imagesArr, updateProductStatus) {
+    const session_data = JSON.parse(
+      window.localStorage.getItem("session.data")
+    );
+    imagesArr.forEach(async function (base64, index) {
+      try {
+        const response = await fetch(config.API_HOST_URL + "/product_images", {
+          headers: {
+            "content-type": "application/json;charset=utf-8",
+          },
+          body: JSON.stringify({
+            fk_product_id: product_id,
+            image: base64,
+            fk_user_id: session_data.id,
+            fk_role: session_data.role,
+          }),
+          mode: "cors",
+          method: "POST",
+        });
+        // get the response
+        const res = await response.json();
+        updateProductStatus(res, index + 1);
+      } catch (error) {
+        console.log("Error Uploading Images", error);
+      }
+    });
+  },
+  updateProductImageStatus: function (product_id, redirectDashboard) {
+    let api = fetch(config.API_HOST_URL + "/products/" + product_id, {
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+      method: "PATCH",
+      mode: "cors",
+      body: JSON.stringify({
+        is_image_uploaded: true,
+      }),
+    });
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        redirectDashboard(data);
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  getUploadImages: function (product_id, setImageInArray, raiseErrorInToast) {
+    let api = fetch(
+      config.API_HOST_URL + "/product_images/?fk_product_id=" + product_id,
+      {
+        headers: {
+          "content-type": "application/json;charset=utf-8",
+        },
+      }
+    );
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        if (data.length > 0) {
+          setImageInArray(data);
+        } else if (data.length === 0) {
+          raiseErrorInToast();
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+  deleteUploadImage: function (image_id, refreshImages) {
+    let api = fetch(config.API_HOST_URL + "/product_images/" + image_id, {
+      headers: {
+        "content-type": "application/json;charset=utf-8",
+      },
+      method: "DELETE",
+      mode: "cors",
+    });
+    api
+      .then(function (res) {
+        if (res.ok) {
+          return res.json();
+        }
+      })
+      .then(function (data) {
+        refreshImages();
+      })
+      .catch(function (error) {
+        console.log(error);
+        window.alert("Oops Error Try Later");
+      });
+  },
+};
+
+export { userApiService };
